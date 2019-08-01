@@ -8,7 +8,8 @@ from torch import nn
 class RNNRouter(nn.Module):
 
     def __init__(self, hidden_size, operations, use_input_embedding=True,
-                learn_inital_hidden=False, weight_tie_output_layer=True, bias=True) -> None:
+                learn_inital_hidden=False, weight_tie_output_layer=True,
+                use_bias=True) -> None:
         '''
         Args:
             hidden_size:
@@ -31,8 +32,8 @@ class RNNRouter(nn.Module):
         self.operation_embeddings = nn.Parameter(
             torch.empty(operations, hidden_size).uniform_(-0.1, 0.1))
         self.use_input_embedding = use_input_embedding
-        self.rnn_cell = nn.GRUCell(hidden_size, hidden_size, bias=bias)
-        self.output_layer = nn.Linear(hidden_size, operations, bias=bias)
+        self.rnn_cell = nn.GRUCell(hidden_size, hidden_size, bias=use_bias)
+        self.output_layer = nn.Linear(hidden_size, operations, bias=use_bias)
 
         if weight_tie_output_layer:
             self.output_layer.weight = self.operation_embeddings
