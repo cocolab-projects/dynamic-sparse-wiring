@@ -26,8 +26,7 @@ class RNNRouter(nn.Module):
         self.hidden_size = hidden_size
         self.use_input_embedding = use_input_embedding
         if use_input_embedding:
-            operations += 1
-            self.first_operation = torch.zeros(1, operations).scatter_(1, torch.tensor([[0]]), 1)
+            self.input_embedding = torch.empty(1, hidden_size).uniform_(-0.1, 0.1)
 
         self.operation_embeddings = nn.Parameter(
             torch.empty(operations, hidden_size).uniform_(-0.1, 0.1))
@@ -54,16 +53,14 @@ class RNNRouter(nn.Module):
         '''
         batch_size = hidden_state.size(0)
 
-        if last_decision is None:
-            if self.use_input_embedding:
-                last_decision = self.first_operation @ self.operation_embeddings
-                # WARNING: might want to use repeat here
-                last_decision = last_decision.expand(batch_size, -1)
-            else:
-                # Could be just zeros (?)
-                last_decision = torch.zeros(batch_size, self.hidden_size).uniform_(-0.1, 0.1)
+        if last_decision is None and self.use_input_embedding:
+            # WARNING: might want to use repeat here
+            input_state = self.input_embedding.expand(batch_size, -1)
+        elif last_decision is None:
+            # Could be just zeros (?)
+            input_state = torch.empty(batch_size, self.hidden_size).uniform_(-0.1, 0.1)
         else:
-            last_decision = last_decision @ self.operation_embeddings
+            input_state = last_decision @ self.operation_embeddings
 
-        hidden = self.rnn_cell(last_decision, hidden_state)
+        hidden = self.rnn_cell(input_state, hidden_state)
         return hidden, self.output_layer(hidden)
