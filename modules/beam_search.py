@@ -12,6 +12,18 @@ import torch
 RoutingFunction = Callable[torch.Tensor, Union[torch.Tensor, None]]
 
 
+def masking_topk(input_: torch.Tensor, k: int):
+    '''
+    A top-k operation that has behavior like subset_operator. Applies along
+    the second dimension. 
+
+    >>> masking_topk(torch.tensor([1., 3., 2.]), k=2)
+    [0, 1, 1]
+    '''
+    _values, indices = input_.topk(dim=1, k=k)
+    return torch.zeros_like(input_).scatter(1, indices, 1)
+
+
 def search_step(trajectory_scores: torch.Tensor) -> torch.Tensor:
     '''
     Takes a traversal step based on the current beam state.
