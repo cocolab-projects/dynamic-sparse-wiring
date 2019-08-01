@@ -28,5 +28,4 @@ class SimpleEmbedder(nn.Module):
         Returns a fixed length (embedding_size) embedding.
         '''
         hidden = F.relu(self.separable_conv(image))
-        return self.linear(torch.flatten(hidden, dim=1))
-
+        return self.linear(torch.flatten(hidden, 1))
