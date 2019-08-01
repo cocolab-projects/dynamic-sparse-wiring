@@ -8,7 +8,7 @@ from typing import Callable, Union
 import torch
 
 # A RoutingFunction takes a hidden_state as its first argument and one-hot
-# vectors representing the last decision (None if no prior decisions)
+# vectors representing the last decision (None if no prior decision)
 RoutingFunction = Callable[torch.Tensor, Union[torch.Tensor, None]]
 
 
@@ -20,7 +20,7 @@ def search_step(trajectory_scores: torch.Tensor) -> torch.Tensor:
 
 
 def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
-                logits: int, beams: int, max_depth: int, temperature: float 1.,
+                logits: int, beams: int, max_depth: int, temperature: float = 1.,
                 differentiable: bool = True):
     '''
     Implements a beam search with a (optional) top-k relaxation based on
