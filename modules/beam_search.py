@@ -94,7 +94,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
 
             # values expanded along the beams
             expanded_mask = scores_mask.view(-1, beams, logits_size)
-            zeros_mask = expanded_mask.sum(1, keepdim=True).bool().expand(-1, beams, -1).bitwise_not()
+            summed_mask = expanded_mask.sum(1, keepdim=True)
+            zeros_mask = summed_mask.bool().expand(-1, beams, -1).bitwise_not()
             selected_decisions[zeros_mask] = expanded_mask[zeros_mask]
         beam_scores = log_probabilities.view(
             batch_size, beams * logits_size).gather(
