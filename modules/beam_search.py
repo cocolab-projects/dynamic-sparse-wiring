@@ -60,7 +60,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     # score of each beam (unordered)
     trajectory_scores = torch.zeros(batch_size, beams, 1)
 
-    hidden_state = root_state
+    hidden_state = root_state.unsqueeze(dim=1).expand(-1, beams, -1).reshape(
+        batch_size * beams, -1)
     last_decision = None
 
     for depth in range(max_depth):
