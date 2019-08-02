@@ -79,6 +79,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         score_values = scores_mask.gather(dim=1, index=scores_indices)
         selected_decisions = torch.zeros(batch_size, beams, logits_size)
 
+        scores_indices = torch.remainder(scores_indices, logits_size)
         # create one-hot vectors for each one of the decisions
         selected_decisions = selected_decisions.scatter(
             2, scores_indices.unsqueeze(2), score_values.unsqueeze(2))
@@ -90,10 +91,12 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             # 1 0 1 0 0
             #   ^ don't copy as a 1 exists in the column
 
-            # values expanded along the beam
-            expanded_values = score_values.unsqueeze(dim=1).expand(-1, beams, -1)
-            zeros_mask = ~expanded_values.byte()
-            selected_decisions[zeros_mask] = expanded_values[zeros_mask]
+            # values expanded along the beams
+            expanded_mask = scores_mask.view(-1, beams, logits_size)
+            summed_mask = torch.sum(expanded_mask, dim=1)
+            beam_mask = summed_mask.unsqueeze(1).expand(-1, beams, -1)
+            zeros_mask = ~beam_mask.byte()
+            selected_decisions[zeros_mask] = expanded_mask[zeros_mask]
 
         trajectory_scores += score_values
         last_decision = batches_logits_reshape(selected_decisions)
