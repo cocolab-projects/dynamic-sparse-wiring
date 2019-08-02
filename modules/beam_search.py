@@ -80,6 +80,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         score_values = scores_mask.gather(dim=1, index=scores_indices)
         selected_decisions = torch.zeros(batch_size, beams, logits_size)
 
+        # selection is done with a collapsed dimension
         scores_indices = torch.remainder(scores_indices, logits_size)
         # create one-hot vectors for each one of the decisions
         selected_decisions = selected_decisions.scatter(
@@ -95,6 +96,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             # values expanded along the beams
             expanded_mask = scores_mask.view(-1, beams, logits_size)
             summed_mask = expanded_mask.sum(1, keepdim=True)
+            # bitwise_not is a workaround, ~ is unsupported currently
             zeros_mask = summed_mask.bool().expand(-1, beams, -1).bitwise_not()
             selected_decisions[zeros_mask] = expanded_mask[zeros_mask]
         beam_scores = log_probabilities.view(
