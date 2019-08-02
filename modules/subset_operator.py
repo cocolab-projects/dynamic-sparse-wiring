@@ -51,5 +51,3 @@ def subset_operator(scores: torch.Tensor, k: int, tau: float = 1.0,
         k_hot = k_hot_hard.scatter(1, indices, 1.) - k_hot.detach() + k_hot
 
     return ValuesIndices(k_hot, indices)
-
-
