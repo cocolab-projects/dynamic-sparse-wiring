@@ -101,7 +101,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         beam_scores = log_probabilities.view(
             batch_size, beams * logits_size).gather(
                 1, scores_indices).unsqueeze(dim=-1)
-        trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=-1,
+        trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=1,
                               keepdim=True))
         last_decision = selected_decisions.view(-1, logits_size)
         trajectories[depth] = selected_decisions
