@@ -78,7 +78,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         score_values = scores_mask.gather(dim=1, index=scores_indices)
         selected_decisions = torch.zeros(batch_size, beams, logits_size)
 
-        # selection is done with a collapsed dimension
+        # selection is done with a collapsed dimension, modulo is used to correct
+        # indices
         scores_indices = torch.remainder(scores_indices, logits_size)
         # create one-hot vectors for each one of the decisions
         selected_decisions = selected_decisions.scatter(
