@@ -52,7 +52,6 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     '''
 
     batch_size = root_state.size(0)
-    batches_logits_reshape = lambda tensor: tensor.view(batch_size, beams * logits_size)
 
     # stores past decisions
     trajectories = torch.zeros(max_depth, batch_size, beams, logits_size)
@@ -72,7 +71,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         # all the scores we are locally selecting between
         scores = (log_probabilities.view(batch_size, beams, -1) +
                   trajectory_scores.expand(-1, -1, logits_size).clone())
-        scores = batches_logits_reshape(scores)
+        scores = scores.view(batch_size, beams * logits_size)
         scores_mask, scores_indices = subset_operator(scores, k=beams,
                                                       tau=temperature,
                                                       hard=True)
