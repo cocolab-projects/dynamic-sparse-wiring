@@ -53,7 +53,6 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
 
     batch_size = root_state.size(0)
     batches_logits_reshape = lambda tensor: tensor.view(batch_size, beams * logits_size)
-    batches_beams_logits_reshape = lambda tensor: tensor.view(-1, beams * logits_size)
 
     # stores past decisions
     trajectories = torch.zeros(max_depth, batch_size, beams, logits_size)
