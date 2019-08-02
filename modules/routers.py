@@ -55,8 +55,7 @@ class RNNRouter(nn.Module):
         batch_size = hidden_state.size(0)
 
         if last_decision is None and self.use_input_embedding:
-            # WARNING: might want to use repeat here
-            input_state = self.input_embedding.expand(batch_size, -1)
+            input_state = self.input_embedding.expand(batch_size, -1).clone()
         elif last_decision is None:
             # Could be just zeros (?)
             input_state = torch.empty(batch_size, self.hidden_size).uniform_(-0.1, 0.1)
