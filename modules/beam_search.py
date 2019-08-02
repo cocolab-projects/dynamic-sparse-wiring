@@ -98,9 +98,10 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             beam_mask = summed_mask.unsqueeze(1).expand(-1, beams, -1)
             zeros_mask = ~beam_mask.byte()
             selected_decisions[zeros_mask] = expanded_mask[zeros_mask]
-
-        trajectory_scores += score_values
-        last_decision = batches_logits_reshape(selected_decisions)
+        trajectory_scores += log_probabilities.view(
+            batch_size, beams * logits_size).gather(
+            1, scores_indices).unsqueeze(dim=-1)
+        last_decision = selected_decisions.view(-1, logits_size)
         trajectories[depth] = selected_decisions
 
     return trajectories, trajectory_scores
