@@ -1,6 +1,6 @@
 '''
 Provides a simple implementation of a beam search with an optional top-k
-relaxation. 
+relaxation.
 '''
 
 from typing import Callable, Union
@@ -26,7 +26,7 @@ class BeamSearchResult:
 def masking_topk(input_: torch.Tensor, k: int):
     '''
     A top-k operation that has behavior like subset_operator. Applies along
-    the second dimension. 
+    the second dimension.
 
     >>> masking_topk(torch.tensor([1., 3., 2.]), k=2)
     [0, 1, 1]
