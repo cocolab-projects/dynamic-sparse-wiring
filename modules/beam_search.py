@@ -115,7 +115,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             # values expanded along the beams
             reshaped_mask = scores_mask.view_as(selected_decisions)
             summed_mask = reshaped_mask.sum(1, keepdim=True)
-            # bitwise_not is a workaround, ~ is unsupported for bool tensors 
+            # bitwise_not is a workaround, ~ is unsupported for bool tensors
             zeros_mask = expand_on_beams(summed_mask).bool().bitwise_not()
             selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
 
