@@ -37,8 +37,7 @@ def masking_topk(input_: torch.Tensor, k: int):
 
 def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
                 logits_size: int, beams: int, max_depth: int,
-                temperature: float = 1., preserve_zeros_grad: bool = True,
-                differentiable: bool = True):
+                temperature: float = 1., preserve_zeros_grad: bool = True):
     '''
     Implements a beam search with a (optional) top-k relaxation based on
     [Reparameterizable Subset Sampling via Continuous Relaxations]
