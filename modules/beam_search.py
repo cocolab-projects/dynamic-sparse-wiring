@@ -4,6 +4,7 @@ relaxation.
 '''
 
 from typing import Callable, Union
+from dataclasses import dataclass
 
 import torch
 from torch.nn import functional as F
@@ -13,6 +14,13 @@ from modules.subset_operator import subset_operator
 # A RoutingFunction takes a hidden_state as its first argument and one-hot
 # vectors representing the last decision (None if no prior decision)
 RoutingFunction = Callable
+
+
+@dataclass
+class BeamSearchResult:
+    trajectories: torch.Tensor
+    trajectory_scores: torch.Tensor
+    score_values: torch.Tensor
 
 
 def masking_topk(input_: torch.Tensor, k: int):
@@ -106,4 +114,4 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         last_decision = selected_decisions.view(-1, logits_size)
         trajectories[depth] = selected_decisions
 
-    return trajectories, trajectory_scores
+    return BeamSearchResult(trajectories, trajectory_scores, score_values)
