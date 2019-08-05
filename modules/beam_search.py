@@ -94,6 +94,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
 
         beam_scores = beam_scores.unsqueeze(-1)
         trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=1,
+                                                            keepdim=True))
         scores_indices = torch.remainder(scores_indices, logits_size)
         # create one-hot vectors for each one of the decisions
         selected_decisions = selected_decisions.scatter(
