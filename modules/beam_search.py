@@ -84,11 +84,16 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         scores_mask, scores_indices = subset_operator(scores, k=beams,
                                                       tau=temperature,
                                                       hard=True)
-        score_values = scores_mask.gather(dim=1, index=scores_indices)
-        selected_decisions = torch.zeros(batch_size, beams, logits_size)
+        # once pytorch/pull/23479 (gather broadcasting) is merged - remove
+        # cruff and gain speed improvement
+        gathers = torch.cat([
+            scores_mask,
+            log_probabilities.view(batch_size, beams * logits_size)
+        ], dim=0).gather(1, scores_indices.repeat(2, 1))
+        score_values, beam_scores = torch.split(gathers, batch_size)
 
-        # selection is done with a collapsed dimension, modulo is used to correct
-        # indices
+        beam_scores = beam_scores.unsqueeze(-1)
+        trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=1,
         scores_indices = torch.remainder(scores_indices, logits_size)
         # create one-hot vectors for each one of the decisions
         selected_decisions = selected_decisions.scatter(
