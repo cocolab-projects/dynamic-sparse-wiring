@@ -65,8 +65,9 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     trajectories = torch.zeros(max_depth, batch_size, beams, logits_size)
     # score of each beam (unordered)
     trajectory_scores = torch.zeros(batch_size, beams, 1)
+    expand_on_beams = lambda tensor: tensor.expand(-1, beams, -1)
 
-    hidden_state = root_state.unsqueeze(dim=1).expand(-1, beams, -1).clone().reshape(
+    hidden_state = expand_on_beams(root_state.unsqueeze(dim=1)).clone().reshape(
         batch_size * beams, -1)
     last_decision = None
 
@@ -101,17 +102,13 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             #   ^ don't copy as a 1 exists in the column
 
             # values expanded along the beams
-            expanded_mask = scores_mask.view(-1, beams, logits_size)
-            summed_mask = expanded_mask.sum(1, keepdim=True)
-            # bitwise_not is a workaround, ~ is unsupported currently
-            zeros_mask = summed_mask.bool().expand(-1, beams, -1).bitwise_not()
-            selected_decisions[zeros_mask] = expanded_mask[zeros_mask]
-        beam_scores = log_probabilities.view(
-            batch_size, beams * logits_size).gather(
-                1, scores_indices).unsqueeze(dim=-1)
-        trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=1,
-                                                            keepdim=True))
-        last_decision = selected_decisions.view(-1, logits_size)
+            reshaped_mask = scores_mask.view_as(selected_decisions)
+            summed_mask = reshaped_mask.sum(1, keepdim=True)
+            # bitwise_not is a workaround, ~ is unsupported for bool tensors 
+            zeros_mask = expand_on_beams(summed_mask).bool().bitwise_not()
+            selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
+
+        last_decision = selected_decisions.view(batch_size * beams, logits_size)
         trajectories[depth] = selected_decisions
 
     return BeamSearchResult(trajectories, trajectory_scores, score_values)
