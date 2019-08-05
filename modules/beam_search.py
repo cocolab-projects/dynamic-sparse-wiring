@@ -78,8 +78,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
 
         # The "score" matrix has a shape (batch size x beams x logits) and holds
         # all the scores we are locally selecting between
-        scores = (log_probabilities.view(batch_size, beams, -1) +
-                  trajectory_scores.expand(-1, -1, logits_size).clone())
+        scores = (log_probabilities.view(batch_size, beams, logits_size) +
+                  trajectory_scores.expand(-1, -1, logits_size))
         scores = scores.view(batch_size, beams * logits_size)
         scores_mask, scores_indices = subset_operator(scores, k=beams,
                                                       tau=temperature,
