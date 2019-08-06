@@ -70,7 +70,7 @@ class Supernetwork(nn.Module):
                 output = self.module_list[torch.argmax(each)](hidden_state[index])
                 if 'operationwise' in tie_output_to_router:
                     selected_operation_value = torch.max(each)
-                    output *= selected_operation_value
+                    output = output * selected_operation_value
                 outputs.append(F.relu(output))
             hidden_state = torch.stack(outputs, dim=0)
         # returns batch_size * beams seems like this will need to change when we
