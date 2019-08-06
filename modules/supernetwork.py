@@ -79,7 +79,7 @@ class Supernetwork(nn.Module):
         if 'pathwise' in tie_output_to_router:
             predictions *= torch.prod(result.score_values)
 
-        return predictions
+        return F.log_softmax(predictions, dim=1)
 
 
 if __name__ == '__main__':
