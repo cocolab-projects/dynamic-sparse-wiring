@@ -23,7 +23,7 @@ class Supernetwork(nn.Module):
         self.beams = beams
 
         self.net = nn.Sequential(
-            nn.Conv2d(3, 32, 3),
+            nn.Conv2d(1, 32, 3),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.AvgPool2d(2),
