@@ -18,8 +18,9 @@ def train(args, model, device, train_loader, optimizer, epoch):
         optimizer.zero_grad()
         output = model(data)
         batch_size = target.size(0)
+        target = target.unsqueeze(0).expand(2, -1).t().reshape(-1)
         # Shitty hack here
-        target = target.unsqueeze(0).expand(10, -1).reshape(-1)
+        # target = target.unsqueeze(0).expand(10, -1).reshape(-1)
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
@@ -35,8 +36,9 @@ def test(args, model, device, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             batch_size = target.size(0)
-            target = target.unsqueeze(0).expand(10, -1).reshape(-1)
+            # target = target.unsqueeze(0).expand(10, -1).reshape(-1)
             data, target = data.to(device), target.to(device)
+            target = target.unsqueeze(0).expand(2, -1).t().reshape(-1)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
@@ -95,11 +97,12 @@ def main():
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
 
-    model = Supernetwork(10, 4).to(device)
+    model = Supernetwork(2, 4).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
+        # import ipdb; ipdb.set_trace()
         test(args, model, device, test_loader)
 
     if (args.save_model):
