@@ -47,14 +47,14 @@ class Supernetwork(nn.Module):
         self.router = RNNRouter(128, self.logits_size)
         self.output_layer = nn.Linear(128, 10)
 
-    def forward(self, x, tie_output_to_router: List[str] = ['pathwise']):
+    def forward(self, x, tie_output_to_router: List[str] = ['operationwise']):
         batch_size = x.size(0)
         inital_hidden_state = self.net(x).view(batch_size, -1)
 
         # save copy for network
         rnn_hidden_state = inital_hidden_state[:]
         result = beam_search(rnn_hidden_state, self.router, logits_size=4,
-                                   beams=self.beams, max_depth=3)
+                                   beams=self.beams, max_depth=3, temperature=0.5)
         # path = (depth, batch_size, beams, logits)
         hidden_state = inital_hidden_state
         hidden_state = torch.unsqueeze(
