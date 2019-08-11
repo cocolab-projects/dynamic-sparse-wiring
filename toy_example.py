@@ -56,7 +56,7 @@ for epoch in range(100):
     if epoch % 10 == 0:
         # True loss only counts the best beam
         mask = torch.nn.functional.one_hot(
-            result.trejectory_scores.argmin(1).flatten()).flatten()
+            result.trejectory_scores.argmin(1).flatten(), num_classes=BEAMS).flatten()
         masked = batched_result[mask.bool()]
         true_loss = torch.sum(env * masked)
 
