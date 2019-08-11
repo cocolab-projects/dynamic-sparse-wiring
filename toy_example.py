@@ -23,7 +23,7 @@ class SubsetSelector(nn.Module):
         self.env_depth = env_depth
         self.decisions = decisions
 
-    def forward(self, env: torch.Tensor, beams: int = 100, temp: float = 20):
+    def forward(self, env: torch.Tensor, beams: int = 100, temp: float = .3):
         batch_size = env.size(0)
         root_state = self.root_state.expand(batch_size, -1)
         result = beam_search(root_state, routing_function=self.router,
