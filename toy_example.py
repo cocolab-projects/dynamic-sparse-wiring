@@ -7,11 +7,12 @@ from modules import RNNRouter
 from modules import beam_search
 
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 HIDDEN_SIZE = 32
 DECISIONS = 3
 ENV_DEPTH = 5
-BEAMS = 2
+BEAMS = 100
+
 
 class SubsetSelector(nn.Module):
 
