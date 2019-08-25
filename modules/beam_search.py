@@ -84,8 +84,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
 
         # Score tensor has a shape (batch_size x beams x logits) and holds the scores
         # for the current local decisions
-        scores = (log_probabilities.view(batch_size, beams, logits_size) +
-                  trajectory_scores.expand(-1, -1, logits_size)).view(
+        scores = (log_probabilities.reshape(batch_size, beams, logits_size) +
+                  trajectory_scores.expand(-1, -1, logits_size)).reshape(
                       batch_size, beams * logits_size)
         scores_mask, scores_indices = subset_operator(scores, k=beams,
                                                       tau=temperature, hard=True)
@@ -93,7 +93,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         # Gather broadcasts (pytorch/pull/23479) remove repeat.
         gathers = torch.cat([
             scores_mask,
-            log_probabilities.view(batch_size, beams * logits_size)
+            log_probabilities.reshape(batch_size, beams * logits_size)
         ], dim=0).gather(1, scores_indices.repeat(2, 1))
         # TODO: !!! Potentially incorrect (batch_size?) !!!
         score_values, beam_scores = torch.split(gathers, batch_size)
@@ -126,7 +126,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             zeros_mask = ~expand_on_beams(summed_mask).bool()
             selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
 
-        last_decision = selected_decisions.view(batch_size * beams, logits_size)
+        last_decision = selected_decisions.reshape(batch_size * beams, logits_size)
         trajectories[depth] = selected_decisions
 
     trajectory_scores = trajectory_scores - torch.logsumexp(trajectory_scores,
