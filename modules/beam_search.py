@@ -2,7 +2,7 @@
 Implementation of a beam search with a top-k relaxation.
 '''
 
-from typing import Callable, Union
+from typing import Callable, Union, List
 from dataclasses import dataclass
 
 import torch
@@ -23,6 +23,7 @@ class BeamSearchResult:
     trajectories: torch.Tensor
     trejectory_scores: torch.Tensor
     score_values: torch.Tensor
+    log_probs: List
 
 
 def masking_topk(input_: torch.Tensor, k: int):
