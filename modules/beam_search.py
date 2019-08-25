@@ -97,7 +97,6 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         ], dim=0).gather(1, scores_indices.repeat(2, 1))
         # TODO: !!! Potentially incorrect (batch_size?) !!!
         score_values, beam_scores = torch.split(gathers, batch_size)
-
         trajectory_scores = (
             trajectory_scores.squeeze() + beam_scores.squeeze()).unsqueeze(-1)
 
