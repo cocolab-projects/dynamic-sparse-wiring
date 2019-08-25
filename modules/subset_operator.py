@@ -1,7 +1,6 @@
 from typing import NamedTuple, Union
 
 import torch
-from torch import nn
 from torch import distributions
 from torch.nn import functional as F
 
@@ -52,3 +51,12 @@ def subset_operator(scores, k: int, tau: float = 1.0,
 
     return ValuesIndices(k_hot, indices)
 
+from modules.lml import lml
+
+
+def magic_subset_operator(scores, k, *args, **kwargs):
+    topk_simplex = lml(scores, k)
+    _values, indices = torch.topk(scores, k, dim=1)
+    k_hot_hard = torch.zeros_like(scores)
+    k_hot = k_hot_hard.scatter(1, indices, 1.) - topk_simplex.detach() + topk_simplex
+    return ValuesIndices(k_hot, indices)
