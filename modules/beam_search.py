@@ -108,6 +108,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             2, scores_indices.unsqueeze(2), score_values.unsqueeze(2))
 
         if preserve_zeros_grad:
+            # TODO: Add non-masking copy
+
             # Preserve negative gradient for zeros
             #         v copy gradient
             # 0 1 1 0 0
