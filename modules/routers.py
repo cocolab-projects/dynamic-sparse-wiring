@@ -1,33 +1,43 @@
+<<<<<<< HEAD
 from typing import Tuple
+=======
+from typing import Tuple, Callable
+>>>>>>> 44e8838e9b4f397ca07f7b041f4c27aa05e36111
 
 import torch
 
 from torch import nn
 
 
+class RandomRouter(nn.Module):
+
+    def __init__(self, hidden_size, operations, **kwargs) -> None:
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.operations = operations
+
+    def forward(self, hidden_state, last_decision=None):
+        batch_size = hidden_state.size(0)
+        device = hidden_size.device
+        # TODO: Why can't we just return hidden_state?
+        hidden_state = torch.empty(batch_size, self.hidden_size).to(device)
+        return hidden_state, torch.randn((batch_size, self.operations))
+
+
 class RNNRouter(nn.Module):
 
-    def __init__(self, hidden_size, operations, use_input_embedding=True,
-                learn_inital_hidden=False, weight_tie_output_layer=True,
-                use_bias=True) -> None:
-        '''
-        Args:
-            hidden_size:
-            operations:
-            use_input_embedding:
-            learn_inital_hidden:
-            weight_tie_output_layer
-            bias:
-        Returns
+    def __init__(self, hidden_size: int, operations,
+                 use_input_embedding: bool = True,
+                 weight_tie_output_layer: bool = True,
+                 use_bias: bool = True) -> None:
 
-        TODO: Add support for LSTMs
-        '''
         super().__init__()
-
         self.hidden_size = hidden_size
         self.use_input_embedding = use_input_embedding
+
         if use_input_embedding:
-            self.input_embedding = torch.empty(1, hidden_size).uniform_(-0.1, 0.1)
+            self.input_embedding = nn.Parameter(
+                torch.empty(1, hidden_size).uniform_(-0.1, 0.1))
 
         self.operation_embeddings = nn.Parameter(
             torch.empty(operations, hidden_size).uniform_(-0.1, 0.1))
@@ -38,29 +48,26 @@ class RNNRouter(nn.Module):
         if weight_tie_output_layer:
             self.output_layer.weight = self.operation_embeddings
 
-        self.init_weights()
-
-    def init_weights(self):
-        # TODO: What's the general idea with initalizing RNNs???
-        pass
-
-    def forward(self, hidden_state, last_decision=None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, hidden_state,
+                last_decision: bool = None) -> Tuple[torch.Tensor, torch.Tensor]:
         '''
         Args:
-            hidden_state: the hidden_state of the RNN
-            last_decision: a batch of one-hot based on what decision was made last
-
-        Returns:
+            hidden_state: the hidden state of the RNN
+            last_decision: a batch of one-hot vectors based on what decision was
+            last made
         '''
         batch_size = hidden_state.size(0)
 
-        if last_decision is None and self.use_input_embedding:
-            input_state = self.input_embedding.expand(batch_size, -1).clone()
-        elif last_decision is None:
-            # Could be just zeros (?)
-            input_state = torch.empty(batch_size, self.hidden_size).uniform_(-0.1, 0.1)
+        if last_decision is None:
+            if self.use_input_embedding:
+                input_state = self.input_embedding.expand(batch_size, -1).clone()
+            else:
+                input_state = torch.empty(batch_size,
+                                          self.hidden_size).uniform(-0.1, 0.1)
         else:
             input_state = last_decision @ self.operation_embeddings
 
-        hidden = self.rnn_cell(input_state, hidden_state)
-        return hidden, self.output_layer(hidden)
+        hidden_state = self.rnn_cell(input_state, hidden_state)
+
+        return hidden_state, self.output_layer(hidden_state)
+

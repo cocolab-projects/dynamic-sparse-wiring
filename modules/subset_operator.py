@@ -1,8 +1,8 @@
 from typing import NamedTuple, Union
 
 import torch
-
 from torch import nn
+from torch import distributions
 from torch.nn import functional as F
 
 
@@ -17,20 +17,19 @@ class ValuesIndices(NamedTuple):
     indices: torch.LongTensor
 
 
-def subset_operator(scores: torch.Tensor, k: int, tau: float = 1.0,
-                    hard: bool = False) -> ValuesIndices:
+def subset_operator(scores, k: int, tau: float = 1.0,
+                    hard: bool = True) -> ValuesIndices:
     '''
-    An implementation of 
+    An implementation of [Reparameterizable Subset Sampling via Continuous
+    Relaxations](https://arxiv.org/abs/1901.10517) and a top-k relaxation from
+    [Neural Nearest Neighbors Networks](https://arxiv.org/abs/1810.12575).
 
     Args:
-        scores:
-        k:
-        tau:
-        hard:
-    Returns:
+
+    Returns
     '''
-    m = torch.distributions.gumbel.Gumbel(torch.zeros_like(scores),
-                                          torch.ones_like(scores))
+    m = distributions.gumbel.Gumbel(torch.zeros_like(scores, dtype=torch.float),
+                                    torch.ones_like(scores, dtype=torch.float))
     g = m.sample()
     scores = scores + g
 
@@ -38,16 +37,18 @@ def subset_operator(scores: torch.Tensor, k: int, tau: float = 1.0,
     one_hot_approx = torch.zeros_like(scores)
 
     for _ in range(k):
-        k_hot_mask = torch.max(1.0 - one_hot_approx, torch.full_like(scores, EPSILON))
-        scores += torch.log(k_hot_mask)
+        k_hot_mask = torch.max(1.0 - one_hot_approx,
+                               torch.full_like(scores, EPSILON))
+        scores = scores + torch.log(k_hot_mask)
         one_hot_approx = F.softmax(scores / tau, dim=1)
-        k_hot += one_hot_approx
+        k_hot = k_hot + one_hot_approx
 
     _values, indices = torch.topk(k_hot, k, dim=1)
 
     if hard:
         k_hot_hard = torch.zeros_like(k_hot)
-        # switched scatter from index_add_ to support batching
+        # switched scatter from index_add to support batching
         k_hot = k_hot_hard.scatter(1, indices, 1.) - k_hot.detach() + k_hot
 
     return ValuesIndices(k_hot, indices)
+
