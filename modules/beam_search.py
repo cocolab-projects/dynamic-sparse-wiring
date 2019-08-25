@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import torch
 from torch.nn import functional as F
 
-from modules.subset_operator import subset_operator
+from modules.subset_operator import magic_subset_operator as subset_operator
 
 
 # A RoutingFunction given a hidden state and a one-hot vector representing the last
