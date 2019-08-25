@@ -73,11 +73,14 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
                                    ).reshape(batch_size * beams, -1)
     last_decision = None
 
+    log_probs = []
+
     for depth in range(max_depth):
 
         # current_state (batch_size x beams x decisions)
         hidden_state, logits = routing_function(hidden_state, last_decision)
         log_probabilities = F.log_softmax(logits, dim=1)
+        log_probs.append(log_probabilities)
 
         # Score tensor has a shape (batch_size x beams x logits) and holds the scores
         # for the current local decisions
@@ -130,5 +133,5 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     trajectory_scores = trajectory_scores - torch.logsumexp(trajectory_scores,
                                                             dim=1, keepdim=True)
 
-    return BeamSearchResult(trajectories, trajectory_scores, score_values)
+    return BeamSearchResult(trajectories, trajectory_scores, score_values, log_probs)
 
