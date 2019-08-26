@@ -59,9 +59,8 @@ class Supernetwork(nn.Module):
         self.last_result = result
         # path = (depth, batch_size, beams, logits)
         hidden_state = inital_hidden_state
-        hidden_state = torch.unsqueeze(
-            hidden_state, dim=1).expand(-1, self.beams, -1).clone().view(
-                self.beams * batch_size, -1)
+        hidden_state = hidden_state.unsqueeze(1).expand(
+            -1, self.beams, -1).clone().view(self.beams * batch_size, -1)
 
         for operations in result.trajectories:
             # operations (batch_size, beams, logits) -> (batch_size * beams, logits)
@@ -69,7 +68,7 @@ class Supernetwork(nn.Module):
                                          self.logits_size)
             outputs = []
             for index, each in enumerate(operations):
-                output = self.module_list[torch.argmax(each)](hidden_state[index])
+                output = self.module_list[each.argmax()](hidden_state[index])
                 if 'operationwise' in tie_output_to_router:
                     selected_operation_value = torch.max(each)
                     output = output * selected_operation_value
