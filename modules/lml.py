@@ -57,7 +57,9 @@ class LML(torch.autograd.Function):
             if single:
                 y = y.squeeze(0)
             ctx.save_for_backward(orig_x, y, torch.Tensor())
-            return y + 1e-8
+            # adding a epsilon here helps training when some choices get close
+            # to zero
+            return y + eps
 
         x_sorted, _ = torch.sort(x, dim=1, descending=True)
 
@@ -102,6 +104,7 @@ class LML(torch.autograd.Function):
         y = torch.sigmoid(x + nu.unsqueeze(1))
         if single:
             y = y.squeeze(0)
+        # we also add the epsilon here
         y = y + eps
 
         ctx.save_for_backward(orig_x, y, nu)
