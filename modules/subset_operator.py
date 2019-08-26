@@ -54,7 +54,6 @@ def subset_operator(scores, k: int, tau: float = 1.0,
     return ValuesIndices(k_hot, indices)
 
 
-
 def magic_subset_operator(scores, k, *args, **kwargs):
     topk_simplex = lml(scores, k)
     _values, indices = torch.topk(scores, k, dim=1)
