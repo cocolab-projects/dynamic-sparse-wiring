@@ -18,7 +18,7 @@ class ValuesIndices(NamedTuple):
     indices: torch.LongTensor
 
 
-def subset_operator(scores, k: int, tau: float = 1.0,
+def gumble_subset_operator(scores, k: int, tau: float = 1.0,
                     hard: bool = True) -> ValuesIndices:
     '''
     An implementation of [Reparameterizable Subset Sampling via Continuous
@@ -54,7 +54,7 @@ def subset_operator(scores, k: int, tau: float = 1.0,
     return ValuesIndices(k_hot, indices)
 
 
-def magic_subset_operator(scores, k, *args, **kwargs):
+def lml_subset_operator(scores, k, *args, **kwargs):
     topk_simplex = lml(scores, k)
     _values, indices = torch.topk(scores, k, dim=1)
     k_hot_hard = torch.zeros_like(scores)
