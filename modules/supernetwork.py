@@ -48,7 +48,7 @@ class Supernetwork(nn.Module):
         self.output_layer = nn.Linear(128, 10)
         self.last_result = None
 
-    def forward(self, x, tie_output_to_router: List[str] = ['operationwise']):
+    def forward(self, x):
         batch_size = x.size(0)
         inital_hidden_state = self.net(x).view(batch_size, -1)
 
@@ -69,16 +69,11 @@ class Supernetwork(nn.Module):
             outputs = []
             for index, each in enumerate(operations):
                 output = self.module_list[each.argmax()](hidden_state[index])
-                if 'operationwise' in tie_output_to_router:
-                    selected_operation_value = torch.max(each)
-                    output = output * selected_operation_value
                 outputs.append(F.relu(output))
             hidden_state = torch.stack(outputs, dim=0)
         # returns batch_size * beams seems like this will need to change when we
         # only run a few of the paths
         predictions = self.output_layer(hidden_state)
-        if 'pathwise' in tie_output_to_router:
-            predictions *= torch.prod(result.score_values)
 
         return F.log_softmax(predictions, dim=1)
 
