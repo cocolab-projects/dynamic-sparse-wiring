@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from typing import Tuple
-=======
 from typing import Tuple, Callable
->>>>>>> 44e8838e9b4f397ca07f7b041f4c27aa05e36111
 
 import torch
 
