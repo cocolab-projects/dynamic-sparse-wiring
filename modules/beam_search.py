@@ -65,12 +65,10 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     trajectories = torch.zeros(max_depth, batch_size, beams, logits_size).to(device)
     trajectory_scores = torch.zeros(batch_size, beams, 1).to(device)
 
-    expand_on_beams = lambda tensor: tensor.expand(-1, beams, -1)
-
     # TODO: Does reshape handle the clone? Still worried about order... (Try reshape on
     # a range of ints?)
-    hidden_state = expand_on_beams(root_state.unsqueeze(dim=1)
-                                   ).reshape(batch_size * beams, -1)
+    hidden_state = root_state.unsqueeze(dim=1).reshape(
+        batch_size * beams, -1).expand(-1, beams, -1)
     last_decision = None
 
     log_probs = []
@@ -123,7 +121,7 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             reshaped_mask = scores_mask.view_as(selected_decisions)
             summed_mask = reshaped_mask.sum(1, keepdim=True)
             # bitwise_not is a workaround, ~ is unsupported for bool tensors
-            zeros_mask = ~expand_on_beams(summed_mask).bool()
+            zeros_mask = ~summed_mask).bool().expand(-1, beams, -1)
             selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
 
         last_decision = selected_decisions.reshape(batch_size * beams, logits_size)
