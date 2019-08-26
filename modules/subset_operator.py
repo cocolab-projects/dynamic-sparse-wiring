@@ -19,7 +19,7 @@ class ValuesIndices(NamedTuple):
 
 
 def gumble_subset_operator(scores, k: int, tau: float = 1.0,
-                    hard: bool = True) -> ValuesIndices:
+                            hard: bool = True) -> ValuesIndices:
     '''
     An implementation of [Reparameterizable Subset Sampling via Continuous
     Relaxations](https://arxiv.org/abs/1901.10517) and a top-k relaxation from
