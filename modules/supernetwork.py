@@ -50,7 +50,7 @@ class Supernetwork(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
-        inital_hidden_state = self.net(x).view(batch_size, -1)
+        inital_hidden_state = self.net(x).reshape(batch_size, -1)
 
         # save copy for network
         rnn_hidden_state = inital_hidden_state[:]
@@ -60,12 +60,12 @@ class Supernetwork(nn.Module):
         # path = (depth, batch_size, beams, logits)
         hidden_state = inital_hidden_state
         hidden_state = hidden_state.unsqueeze(1).expand(
-            -1, self.beams, -1).clone().view(self.beams * batch_size, -1)
+            -1, self.beams, -1).clone().reshape(self.beams * batch_size, -1)
 
         for operations in result.trajectories:
             # operations (batch_size, beams, logits) -> (batch_size * beams, logits)
-            operations = operations.view(batch_size * self.beams,
-                                         self.logits_size)
+            operations = operations.reshape(batch_size * self.beams,
+                                            self.logits_size)
             outputs = []
             for index, each in enumerate(operations):
                 output = self.module_list[each.argmax()](hidden_state[index])
