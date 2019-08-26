@@ -104,15 +104,14 @@ class LML(torch.autograd.Function):
             y = y.squeeze(0)
         y = y + eps
 
-        ctx.save_for_backward(orig_x, y, nu, torch.tensor([N]))
+        ctx.save_for_backward(orig_x, y, nu)
         ctx.N = N
 
         return y
 
     @staticmethod
     def backward(ctx, grad_output):
-        # likely wrong :shrug:
-        x, y, nu, N = ctx.saved_tensors
+        x, y, nu = ctx.saved_tensors
         N = ctx.N
 
         single = x.ndimension() == 1
