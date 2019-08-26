@@ -37,16 +37,13 @@ def bdot(x, y):
 class LML(torch.autograd.Function):
 
     @staticmethod
-    def forward(ctx, x, N):
-        eps=1e-4
-        n_iter=100
-        branch=None
+    def forward(ctx, x, N, eps, n_iter, branch):
+
         if branch is None:
             if not x.is_cuda:
                 branch = 10
             else:
                 branch = 100
-        branch = 1000
 
         single = x.ndimension() == 1
         orig_x = x
@@ -108,6 +105,7 @@ class LML(torch.autograd.Function):
         y = y + eps
 
         ctx.save_for_backward(orig_x, y, nu, torch.tensor([N]))
+        ctx.N = N
 
         return y
 
@@ -115,7 +113,7 @@ class LML(torch.autograd.Function):
     def backward(ctx, grad_output):
         # likely wrong :shrug:
         x, y, nu, N = ctx.saved_tensors
-        N = N.item()
+        N = ctx.N
 
         single = x.ndimension() == 1
 
@@ -145,7 +143,9 @@ class LML(torch.autograd.Function):
         return dx, None
 
 
-lml = LML.apply
+def lml(input_, N, eps=1e-4, n_iter=100, branch=None):
+    return LML.apply(input_, N, eps, n_iter, branch)
+
 
 if __name__ == '__main__':
     input_ = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5], requires_grad=True)
