@@ -4,6 +4,8 @@ import torch
 from torch import distributions
 from torch.nn import functional as F
 
+from modules.lml import lml
+
 
 EPSILON = torch.finfo(torch.float32).tiny
 
@@ -51,7 +53,6 @@ def subset_operator(scores, k: int, tau: float = 1.0,
 
     return ValuesIndices(k_hot, indices)
 
-from modules.lml import lml
 
 
 def magic_subset_operator(scores, k, *args, **kwargs):
