@@ -60,7 +60,7 @@ class RNNRouter(nn.Module):
 
         if last_decision is None:
             if self.use_input_embedding:
-                input_state = self.input_embedding.expand(batch_size, -1).clone()
+                input_state = self.input_embedding.expand(batch_size, -1).clone().detach()
             else:
                 input_state = torch.empty(batch_size,
                                           self.hidden_size).uniform(-0.1, 0.1)
