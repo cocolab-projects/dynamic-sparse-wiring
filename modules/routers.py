@@ -6,23 +6,27 @@ from torch import nn
 
 
 class RandomRouter(nn.Module):
+    '''
+    '''
 
-    def __init__(self, hidden_size, operations, **kwargs) -> None:
+    def __init__(self, hidden_size: int, operations: int, **kwargs) -> None:
         super().__init__()
         self.hidden_size = hidden_size
         self.operations = operations
 
-    def forward(self, hidden_state, last_decision=None):
+    def forward(self, hidden_state, last_decision: bool = None):
         batch_size = hidden_state.size(0)
-        device = hidden_size.device
+        device = self.hidden_state.device
         # TODO: Why can't we just return hidden_state?
         hidden_state = torch.empty(batch_size, self.hidden_size).to(device)
         return hidden_state, torch.randn((batch_size, self.operations))
 
 
 class RNNRouter(nn.Module):
+    '''
+    '''
 
-    def __init__(self, hidden_size: int, operations,
+    def __init__(self, hidden_size: int, operations: int,
                  use_input_embedding: bool = True,
                  weight_tie_output_layer: bool = True,
                  use_bias: bool = True) -> None:
