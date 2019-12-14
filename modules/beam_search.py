@@ -1,9 +1,8 @@
 '''
-Provides a simple implementation of a beam search with an optional top-k
-relaxation.
+Implementation of a beam search with a top-k relaxation.
 '''
 
-from typing import Callable, Union
+from typing import Callable, Union, List
 from dataclasses import dataclass
 
 import torch
@@ -11,22 +10,26 @@ from torch.nn import functional as F
 
 from modules.subset_operator import magic_subset_operator as subset_operator
 
-# A RoutingFunction takes a hidden_state as its first argument and one-hot
-# vectors representing the last decision (None if no prior decision)
+
+# A RoutingFunction given a hidden state and a one-hot vector representing the last
+# decision (potentially None) returns a new hidden state and a distribution over
+# decisions.
+# TODO: Add correct type hint
 RoutingFunction = Callable
 
 
 @dataclass
 class BeamSearchResult:
     trajectories: torch.Tensor
-    trajectory_scores: torch.Tensor
+    trejectory_scores: torch.Tensor
     score_values: torch.Tensor
+    log_probs: List
 
 
 def masking_topk(input_: torch.Tensor, k: int):
     '''
-    A top-k operation that has behavior like subset_operator. Applies along
-    the second dimension.
+    A top-k operation that has the same behavior as subset_operator. Applies top-k
+    along the second dimension.
 
     >>> masking_topk(torch.tensor([1., 3., 2.]), k=2)
     [0, 1, 1]
@@ -45,34 +48,44 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     (https://arxiv.org/abs/1810.12575).
 
     Args:
-        root_state: the inital hidden for the routing function, shared for all
-            children nodes
-        routing_function: a function that returns a new hidden_state along with
-            a logits over decisions
-        beams: the amount of paths to expand at each depth
-        temperature: used to "soften" the a softmax estimating argmax similar to
-            gumble-softmax
-        differentiable: use a relaxed top-k operator
+        root_state: the inital hidden state for the routing function, shared by all
+        children nodes
+        routing_function: a Callable that returns a new hidden state and a
+        distribution over decisions
+        temperature: used to normalize the softmax used for estimating top-k
+        differentiable: use a top-k relaxation
 
     Returns:
         A sparse solution
     '''
     batch_size = root_state.size(0)
+    device = root_state.device
 
     # stores past decisions
+<<<<<<< HEAD
     trajectories = torch.zeros(max_depth, batch_size, beams, logits_size).cuda()
     # score of each beam (unordered)
     trajectory_scores = torch.zeros(batch_size, beams, 1).cuda()
     expand_on_beams = lambda tensor: tensor.expand(-1, beams, -1)
+=======
+    trajectories = torch.zeros(max_depth, batch_size, beams, logits_size).to(device)
+    trajectory_scores = torch.zeros(batch_size, beams, 1).to(device)
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
 
-    hidden_state = expand_on_beams(root_state.unsqueeze(dim=1)).clone().reshape(
-        batch_size * beams, -1)
+    # TODO: Does reshape handle the clone? Still worried about order... (Try reshape on
+    # a range of ints?)
+    hidden_state = root_state.unsqueeze(dim=1).reshape(
+        batch_size * beams, -1).expand(-1, beams, -1)
     last_decision = None
 
+    log_probs = []
+
     for depth in range(max_depth):
-        # current_state (batch size x beams x decisions)
+
+        # current_state (batch_size x beams x decisions)
         hidden_state, logits = routing_function(hidden_state, last_decision)
         log_probabilities = F.log_softmax(logits, dim=1)
+<<<<<<< HEAD
         # print(log_probabilities.exp())
         # import time
         # time.sleep(0.5)
@@ -81,36 +94,56 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         scores = (log_probabilities.view(batch_size, beams, logits_size) +
                   trajectory_scores.expand(-1, -1, logits_size))
         scores = scores.view(batch_size, beams * logits_size)
+=======
+        log_probs.append(log_probabilities)
+
+        # Score tensor has a shape (batch_size x beams x logits) and holds the scores
+        # for the current local decisions
+        scores = (log_probabilities.reshape(batch_size, beams, logits_size) +
+                  trajectory_scores.expand(-1, -1, logits_size)).reshape(
+                      batch_size, beams * logits_size)
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
         scores_mask, scores_indices = subset_operator(scores, k=beams,
-                                                      tau=temperature,
-                                                      hard=True)
-        # once pytorch/pull/23479 (gather broadcasting) is merged - remove
-        # cruff and gain speed improvement
+                                                      tau=temperature, hard=True)
+
+        # Gather broadcasts (pytorch/pull/23479) remove repeat.
         gathers = torch.cat([
             scores_mask,
-            log_probabilities.view(batch_size, beams * logits_size)
+            log_probabilities.reshape(batch_size, beams * logits_size)
         ], dim=0).gather(1, scores_indices.repeat(2, 1))
+        # TODO: !!! Potentially incorrect (batch_size?) !!!
         score_values, beam_scores = torch.split(gathers, batch_size)
+        trajectory_scores = (
+            trajectory_scores.squeeze() + beam_scores.squeeze()).unsqueeze(-1)
 
+<<<<<<< HEAD
         trajectory_scores = (
             trajectory_scores.squeeze() + beam_scores.squeeze()).unsqueeze(-1)
 
         # selection is done with a collapsed dimension
         # modulo is used to correct indices
+=======
+        # selection is done with a collapsed beam dimension, we therefore need to
+        # correct the indices to account for our scatter being on a tensor with a
+        # beam dimension
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
         scores_indices = torch.remainder(scores_indices, logits_size)
-        # create a shallow copy of the current decision batch
+
         selected_decisions = trajectories[depth]
-        # create one-hot vectors for each one of the decisions
+        # create one-hot vectors for each decision
         selected_decisions = selected_decisions.scatter(
             2, scores_indices.unsqueeze(2), score_values.unsqueeze(2))
 
         if preserve_zeros_grad:
+            # TODO: Add non-masking copy
+
             # Preserve negative gradient for zeros
             #         v copy gradient
             # 0 1 1 0 0
             # 1 0 1 0 0
-            #   ^ don't copy as a 1 exists in the column
+            #   ^ don't copy gradient as 1 exists in column
 
+<<<<<<< HEAD
             # values expanded along the beams
             reshaped_mask = scores_mask.view_as(selected_decisions).bool()
             # summed_mask = reshaped_mask.sum(1, keepdim=True)
@@ -118,10 +151,24 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             # zeros_mask = expand_on_beams(summed_mask).bool().bitwise_not()
             # selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
             selected_decisions[~reshaped_mask] = reshaped_mask[~reshaped_mask].float()
+=======
+            # values expanded along beams
+            reshaped_mask = scores_mask.view_as(selected_decisions)
+            summed_mask = reshaped_mask.sum(1, keepdim=True)
+            # bitwise_not is a workaround, ~ is unsupported for bool tensors
+            zeros_mask = ~summed_mask.bool().expand(-1, beams, -1)
+            selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
 
-        last_decision = selected_decisions.view(batch_size * beams, logits_size)
+        last_decision = selected_decisions.reshape(batch_size * beams, logits_size)
         trajectories[depth] = selected_decisions
 
     trajectory_scores = trajectory_scores - torch.logsumexp(trajectory_scores,
                                                             dim=1, keepdim=True)
+<<<<<<< HEAD
     return BeamSearchResult(trajectories, trajectory_scores, score_values)
+=======
+
+    return BeamSearchResult(trajectories, trajectory_scores, score_values, log_probs)
+
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389

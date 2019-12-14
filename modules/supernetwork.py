@@ -53,10 +53,14 @@ class Supernetwork(nn.Module):
         self.output_layer = nn.Linear(128, 100)
         self.last_result = None
 
+<<<<<<< HEAD
     def forward(self, x, tie_output_to_router: List[str] = ['operationwise']):
 
+=======
+    def forward(self, x):
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
         batch_size = x.size(0)
-        inital_hidden_state = self.net(x).view(batch_size, -1)
+        inital_hidden_state = self.net(x).reshape(batch_size, -1)
 
         # save copy for network
         rnn_hidden_state = self.embedder(x)
@@ -67,16 +71,16 @@ class Supernetwork(nn.Module):
         self.last_result = result
         # path = (depth, batch_size, beams, logits)
         hidden_state = inital_hidden_state
-        hidden_state = torch.unsqueeze(
-            hidden_state, dim=1).expand(-1, self.beams, -1).clone().view(
-                self.beams * batch_size, -1)
+        hidden_state = hidden_state.unsqueeze(1).expand(
+            -1, self.beams, -1).clone().reshape(self.beams * batch_size, -1)
 
         for depth, operations in enumerate(result.trajectories):
             # operations (batch_size, beams, logits) -> (batch_size * beams, logits)
-            operations = operations.view(batch_size * self.beams,
-                                         self.logits_size)
+            operations = operations.reshape(batch_size * self.beams,
+                                            self.logits_size)
             outputs = []
             for index, each in enumerate(operations):
+<<<<<<< HEAD
                 output = self.module_list[torch.argmax(each)](hidden_state[index])
                 if 'operationwise' in tie_output_to_router:
                     selected_operation_value = torch.max(each)
@@ -84,13 +88,22 @@ class Supernetwork(nn.Module):
                 if depth != (result.trajectories.size(0) - 1):
                     output = F.relu(output)
                 outputs.append(output)
+=======
+                output = self.module_list[each.argmax()](hidden_state[index])
+                outputs.append(F.relu(output))
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
             hidden_state = torch.stack(outputs, dim=0)
 
         # returns batch_size * beams seems like this will need to change when we
         # only run a few of the paths
         predictions = self.output_layer(hidden_state)
+<<<<<<< HEAD
         if 'pathwise' in tie_output_to_router:
             predictions = predictions
+=======
+
+        return F.log_softmax(predictions, dim=1)
+>>>>>>> 717fd319383a8f2f000933c5ac717946e9b0d389
 
         router_logit = result.score_values  #- result.score_values.detach()
 
