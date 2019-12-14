@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import torch
 from torch.nn import functional as F
 
-from modules.subset_operator import subset_operator
+from modules.subset_operator import magic_subset_operator as subset_operator
 
 # A RoutingFunction takes a hidden_state as its first argument and one-hot
 # vectors representing the last decision (None if no prior decision)
@@ -57,13 +57,12 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
     Returns:
         A sparse solution
     '''
-
     batch_size = root_state.size(0)
 
     # stores past decisions
-    trajectories = torch.zeros(max_depth, batch_size, beams, logits_size)
+    trajectories = torch.zeros(max_depth, batch_size, beams, logits_size).cuda()
     # score of each beam (unordered)
-    trajectory_scores = torch.zeros(batch_size, beams, 1)
+    trajectory_scores = torch.zeros(batch_size, beams, 1).cuda()
     expand_on_beams = lambda tensor: tensor.expand(-1, beams, -1)
 
     hidden_state = expand_on_beams(root_state.unsqueeze(dim=1)).clone().reshape(
@@ -74,7 +73,9 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         # current_state (batch size x beams x decisions)
         hidden_state, logits = routing_function(hidden_state, last_decision)
         log_probabilities = F.log_softmax(logits, dim=1)
-
+        # print(log_probabilities.exp())
+        # import time
+        # time.sleep(0.5)
         # The "score" matrix has a shape (batch size x beams x logits) and holds
         # all the scores we are locally selecting between
         scores = (log_probabilities.view(batch_size, beams, logits_size) +
@@ -91,9 +92,8 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
         ], dim=0).gather(1, scores_indices.repeat(2, 1))
         score_values, beam_scores = torch.split(gathers, batch_size)
 
-        beam_scores = beam_scores.unsqueeze(-1)
-        trajectory_scores += (beam_scores - torch.logsumexp(beam_scores, dim=1,
-                                                            keepdim=True))
+        trajectory_scores = (
+            trajectory_scores.squeeze() + beam_scores.squeeze()).unsqueeze(-1)
 
         # selection is done with a collapsed dimension
         # modulo is used to correct indices
@@ -112,13 +112,16 @@ def beam_search(root_state: torch.Tensor, routing_function: RoutingFunction,
             #   ^ don't copy as a 1 exists in the column
 
             # values expanded along the beams
-            reshaped_mask = scores_mask.view_as(selected_decisions)
-            summed_mask = reshaped_mask.sum(1, keepdim=True)
+            reshaped_mask = scores_mask.view_as(selected_decisions).bool()
+            # summed_mask = reshaped_mask.sum(1, keepdim=True)
             # bitwise_not is a workaround, ~ is unsupported for bool tensors
-            zeros_mask = expand_on_beams(summed_mask).bool().bitwise_not()
-            selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
+            # zeros_mask = expand_on_beams(summed_mask).bool().bitwise_not()
+            # selected_decisions[zeros_mask] = reshaped_mask[zeros_mask]
+            selected_decisions[~reshaped_mask] = reshaped_mask[~reshaped_mask].float()
 
         last_decision = selected_decisions.view(batch_size * beams, logits_size)
         trajectories[depth] = selected_decisions
 
+    trajectory_scores = trajectory_scores - torch.logsumexp(trajectory_scores,
+                                                            dim=1, keepdim=True)
     return BeamSearchResult(trajectories, trajectory_scores, score_values)

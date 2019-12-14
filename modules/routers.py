@@ -5,6 +5,21 @@ import torch
 from torch import nn
 
 
+class RandomRouter(nn.Module):
+
+    def __init__(self, hidden_size, operations, **kwargs):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.operations = operations
+
+    def forward(self, hidden_state, last_decision=None):
+        batch_size = hidden_state.size(0)
+        hidden_state = torch.empty(batch_size, self.hidden_size)
+        return hidden_state, torch.randn((batch_size, self.operations)).cuda()
+        # torch.nn.functional.one_hot(
+        #     torch.randint(0, self.operations, (batch_size,)))
+
+
 class RNNRouter(nn.Module):
 
     def __init__(self, hidden_size, operations, use_input_embedding=True,
@@ -27,7 +42,8 @@ class RNNRouter(nn.Module):
         self.hidden_size = hidden_size
         self.use_input_embedding = use_input_embedding
         if use_input_embedding:
-            self.input_embedding = torch.empty(1, hidden_size).uniform_(-0.1, 0.1)
+            self.input_embedding = nn.Parameter(
+                torch.empty(1, hidden_size).uniform_(-0.1, 0.1))
 
         self.operation_embeddings = nn.Parameter(
             torch.empty(operations, hidden_size).uniform_(-0.1, 0.1))
@@ -55,7 +71,7 @@ class RNNRouter(nn.Module):
         batch_size = hidden_state.size(0)
 
         if last_decision is None and self.use_input_embedding:
-            input_state = self.input_embedding.expand(batch_size, -1).clone()
+            input_state = self.input_embedding.expand(batch_size, -1).clone().detach()
         elif last_decision is None:
             # Could be just zeros (?)
             input_state = torch.empty(batch_size, self.hidden_size).uniform_(-0.1, 0.1)
